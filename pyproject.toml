@@ -1,0 +1,39 @@
+[project]
+name = "rag-agent"
+version = "0.1.0"
+description = "Retrieval-Augmented Generation agent integrating LangChain, LangGraph, and Azure Search."
+readme = "README.md"
+requires-python = ">=3.12"
+
+dependencies = [
+    # Core AI stack
+    "langchain-core>=0.3.78",
+    "langchain-community>=0.3.31",
+    "langchain-openai>=0.3.35",
+    "langchain-text-splitters>=0.3.11",
+    "langgraph>=0.6.10",
+    "langgraph-checkpoint>=2.1.2",
+    "langgraph-prebuilt>=0.6.4",
+    "langgraph-sdk>=0.2.9",
+    "langsmith>=0.4.33",
+
+    # Azure AI Search + Identity
+    "azure-core>=1.35.1",
+    "azure-identity>=1.25.1",
+    "azure-search-documents>=11.6.0",
+
+    # Data and serialization utilities
+    "pydantic>=2.12.0",
+    "pydantic-settings>=2.11.0",
+    "dataclasses-json>=0.6.7",
+    "tiktoken>=0.12.0",
+    "numpy>=2.3.3",
+    "regex>=2025.9.18",
+    "requests>=2.32.5",
+    "tenacity>=9.1.2",
+
+    # Optional helpers
+    "python-dotenv>=1.1.1",
+    "PyYAML>=6.0.3",
+    "orjson>=3.11.3",
+]
