@@ -1,0 +1,36 @@
+include:
+  - cognee/docker-compose.yml
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+        - 11434:11434
+    volumes:
+        - ./ollama/data:/root/.ollama
+        - ./ollama/entrypoint.sh:/entrypoint.sh:ro
+    container_name: ollama
+    pull_policy: always
+    tty: true
+    restart: always
+    entrypoint: ["/usr/bin/bash", "/entrypoint.sh"]
+    networks:
+      - cognee-network
+    env_file:
+      - .env
+
+  ollama-webui:
+    image: ghcr.io/ollama-webui/ollama-webui:main
+    container_name: ollama-webui
+    ports:
+      - "3001:8080"
+    depends_on:
+      - ollama
+    environment:
+      - OLLAMA_API_BASE_URL=http://ollama:11434/api
+    networks:
+      - cognee-network
+    restart: unless-stopped
+
+volumes:
+  ollama_data:

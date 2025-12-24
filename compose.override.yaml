@@ -1,0 +1,12 @@
+services:
+  cognee:
+    env_file:
+      - .env
+
+  cognee-mcp:
+    env_file:
+      - .env
+
+  frontend:
+    env_file:
+      - .env
