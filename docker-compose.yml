@@ -1,8 +1,31 @@
-include:
-  - path: ./cognee/docker-compose.yml
-    env_file: ./cognee/.env
+# include:
+#   - path: ./cognee/docker-compose.yml
+#     env_file: ./cognee/.env
 
 services:
+  cognee:
+    image: cognee/cognee:main
+    container_name: cognee-ollama
+    networks:
+      - cognee-network
+    ports:
+      - "8080:8000"
+    environment:
+      - LLM_API_KEY=ollama
+      - LLM_MODEL=llama3.1:8b
+      - LLM_PROVIDER=ollama
+      - LLM_ENDPOINT=http://ollama:11434/v1
+      - EMBEDDING_PROVIDER=ollama
+      - EMBEDDING_MODEL=nomic-embed-text:latest
+      - EMBEDDING_ENDPOINT=http://ollama:11434/api/embed
+      - EMBEDDING_DIMENSIONS=768
+      - HUGGINGFACE_TOKENIZER=nomic-ai/nomic-embed-text-v1.5
+      - REQUIRE_AUTHENTICATION=False
+      - ENABLE_BACKEND_ACCESS_CONTROL=False
+    depends_on:
+      ollama-setup:
+        condition: service_completed_successfully
+
   ollama:
     image: ollama/ollama:latest
     container_name: ollama
@@ -39,6 +62,23 @@ services:
     environment:
       - OLLAMA_HOST=http://ollama:11434
     restart: "no"
+
+  cognee-mcp:
+    image: cognee/cognee-mcp:main
+    container_name: cognee-mcp
+    networks:
+      - cognee-network
+    ports:
+      - "8000:8000"
+    environment:
+      - TRANSPORT_MODE=sse
+      - API_URL=http://cognee:8000
+    depends_on:
+      - cognee
+
+networks:
+  cognee-network:
+    driver: bridge
 
 volumes:
   ollama_data:

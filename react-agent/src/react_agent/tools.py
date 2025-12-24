@@ -9,19 +9,15 @@ consider implementing more robust and specialized tools tailored to your needs.
 from typing import Any, Callable, List, Optional, cast
 import sys
 import os
+import asyncio
 
 from langchain_tavily import TavilySearch
 from langgraph.runtime import get_runtime
 
+# MCP Integration - Source: https://langchain-ai.github.io/langgraph/agents/mcp/
+from langchain_mcp_adapters.client import MultiServerMCPClient
+
 from react_agent.context import Context
-
-# # Add the cognee tools directory to the path
-# cognee_tools_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../cognee_tools'))
-# if cognee_tools_path not in sys.path:
-#     sys.path.insert(0, cognee_tools_path)
-
-# # Import cognee tools from the copied cognee_tools directory
-# from tools import add_tool, search_tool
 
 
 async def search(query: str) -> Optional[dict[str, Any]]:
@@ -36,4 +32,37 @@ async def search(query: str) -> Optional[dict[str, Any]]:
     return cast(dict[str, Any], await wrapped.ainvoke({"query": query}))
 
 
-TOOLS: List[Callable[..., Any]] = [search]  # , add_tool, search_tool]
+# Initialize MCP client for Cognee server
+# Source: https://langchain-ai.github.io/langgraph/agents/mcp/#use-mcp-tools
+async def get_mcp_tools():
+    """Load tools from Cognee MCP server.
+    
+    The MCP client connects to the Cognee MCP server running locally,
+    which provides cognify, search, and other knowledge graph tools.
+    """
+    # SSE transport uses /sse endpoint, not /mcp
+    mcp_url = os.getenv("COGNEE_MCP_URL", "http://localhost:8000/sse")
+    
+    client = MultiServerMCPClient(
+        {
+            "cognee": {
+                "url": mcp_url,
+                "transport": "sse",
+            }
+        }
+    )
+    
+    # Get tools from MCP server
+    # These will include: cognify, search, prune, etc.
+    return await client.get_tools()
+
+
+# Load MCP tools synchronously at module initialization
+# Note: In production, consider lazy loading or caching
+try:
+    mcp_tools = asyncio.run(get_mcp_tools())
+    TOOLS: List[Callable[..., Any]] = [search] + mcp_tools
+except Exception as e:
+    print(f"Warning: Could not load MCP tools: {e}", file=sys.stderr)
+    print("Falling back to basic tools only", file=sys.stderr)
+    TOOLS: List[Callable[..., Any]] = [search]
