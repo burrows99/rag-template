@@ -1,0 +1,44 @@
+include:
+  - path: ./cognee/docker-compose.yml
+    env_file: ./cognee/.env
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    networks:
+      - cognee-network
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ollama-setup:
+    image: ollama/ollama:latest
+    container_name: ollama-setup
+    networks:
+      - cognee-network
+    env_file: ./cognee/.env
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: /bin/sh
+    command: >
+      -c "
+      echo 'Pulling LLM model: ${LLM_MODEL:-llama3.1:8b}' &&
+      ollama pull ${LLM_MODEL:-llama3.1:8b} &&
+      echo 'Pulling embedding model: ${EMBEDDING_MODEL:-nomic-embed-text:latest}' &&
+      ollama pull ${EMBEDDING_MODEL:-nomic-embed-text:latest} &&
+      echo 'Models pulled successfully'
+      "
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    restart: "no"
+
+volumes:
+  ollama_data:
