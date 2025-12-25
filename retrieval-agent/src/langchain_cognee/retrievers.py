@@ -135,7 +135,8 @@ class CogneeRetriever(BaseRetriever):
     def _lazy_init_cognee(self):
         """Lazy init - returns client for HTTP API calls."""
         if not hasattr(self, "_http_client"):
-            self._http_client = httpx.AsyncClient(base_url=self.api_url, timeout=30.0)
+            # Increase timeout for cognify operations which can take longer
+            self._http_client = httpx.AsyncClient(base_url=self.api_url, timeout=120.0)
         return self._http_client
 
     def prune(self) -> None:
