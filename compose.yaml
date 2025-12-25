@@ -58,7 +58,7 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - .env
+      - .env.cognee
     networks:
       - elastic-net
     restart: unless-stopped
