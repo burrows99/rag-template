@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field, fields
 from typing import Annotated, Any, Literal, Type, TypeVar
 
@@ -35,12 +36,12 @@ class IndexConfiguration:
     )
 
     retriever_provider: Annotated[
-        Literal["elastic", "elastic-local", "pinecone", "mongodb"],
+        Literal["elastic", "elastic-local", "pinecone", "mongodb", "cognee"],
         {"__template_metadata__": {"kind": "retriever"}},
     ] = field(
-        default="elastic-local",
+        default_factory=lambda: os.getenv("RETRIEVER_PROVIDER", "cognee"),
         metadata={
-            "description": "The vector store provider to use for retrieval. Options are 'elastic', 'pinecone', or 'mongodb'."
+            "description": "The vector store provider to use for retrieval. Options are 'elastic', 'pinecone', 'mongodb', or 'cognee'."
         },
     )
 
@@ -48,6 +49,13 @@ class IndexConfiguration:
         default_factory=dict,
         metadata={
             "description": "Additional keyword arguments to pass to the search function of the retriever."
+        },
+    )
+
+    dataset_name: str = field(
+        default_factory=lambda: os.getenv("COGNEE_DATASET_NAME", "main_dataset"),
+        metadata={
+            "description": "Dataset name for Cognee retriever. Only used when retriever_provider is 'cognee'."
         },
     )
 

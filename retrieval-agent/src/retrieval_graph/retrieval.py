@@ -129,6 +129,40 @@ def make_mongodb_retriever(
 
 
 @contextmanager
+def make_cognee_retriever(
+    configuration: IndexConfiguration, embedding_model: Embeddings
+) -> Generator[VectorStoreRetriever, None, None]:
+    """Configure this agent to connect to Cognee knowledge graph retriever."""
+    from langchain_cognee.retrievers import CogneeRetriever
+
+    # Get OpenAI API key from environment
+    openai_api_key = os.environ.get("OPENAI_API_KEY")
+    if not openai_api_key:
+        raise ValueError("OPENAI_API_KEY environment variable is required for Cognee retriever")
+
+    # Get API URL from environment
+    api_url = os.environ.get("COGNEE_API_URL", "http://localhost:8000")
+
+    # Get k value from search_kwargs or use default
+    k = configuration.search_kwargs.get("k", 3)
+    
+    # Get dataset_name from configuration
+    dataset_name = getattr(configuration, "dataset_name", "main_dataset")
+    
+    logger.debug(f"🧠 Initializing Cognee retriever with dataset: {dataset_name}, k={k}, api_url={api_url}")
+    
+    retriever = CogneeRetriever(
+        llm_api_key=openai_api_key,
+        dataset_name=dataset_name,
+        k=k,
+        api_url=api_url,
+    )
+    
+    logger.debug(f"✅ Cognee retriever initialized successfully")
+    yield retriever
+
+
+@contextmanager
 def make_retriever(
     config: RunnableConfig,
 ) -> Generator[VectorStoreRetriever, None, None]:
@@ -158,6 +192,10 @@ def make_retriever(
 
         case "mongodb":
             with make_mongodb_retriever(configuration, embedding_model) as retriever:
+                yield retriever
+
+        case "cognee":
+            with make_cognee_retriever(configuration, embedding_model) as retriever:
                 yield retriever
 
         case _:
