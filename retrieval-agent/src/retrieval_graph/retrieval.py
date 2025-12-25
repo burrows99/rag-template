@@ -6,6 +6,7 @@ vector store backends, specifically Elasticsearch, Pinecone, and MongoDB.
 The retrievers support filtering results by user_id to ensure data isolation between users.
 """
 
+import logging
 import os
 from contextlib import contextmanager
 from typing import Generator
@@ -16,21 +17,44 @@ from langchain_core.vectorstores import VectorStoreRetriever
 
 from retrieval_graph.configuration import Configuration, IndexConfiguration
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
 ## Encoder constructors
 
 
 def make_text_encoder(model: str) -> Embeddings:
     """Connect to the configured text encoder."""
+    logger.debug(f"🔧 make_text_encoder called with model: {model}")
     provider, model = model.split("/", maxsplit=1)
+    logger.debug(f"📦 Provider: {provider}, Model: {model}")
+    
     match provider:
         case "openai":
             from langchain_openai import OpenAIEmbeddings
-
-            return OpenAIEmbeddings(model=model)
+            
+            # Check for API key
+            api_key = os.environ.get("OPENAI_API_KEY")
+            logger.debug(f"🔑 OPENAI_API_KEY present: {bool(api_key)}")
+            if api_key:
+                logger.debug(f"🔑 OPENAI_API_KEY length: {len(api_key)}")
+                logger.debug(f"🔑 OPENAI_API_KEY prefix: {api_key[:10]}...")
+            
+            logger.debug(f"🚀 Initializing OpenAIEmbeddings with model: {model}")
+            try:
+                embeddings = OpenAIEmbeddings(model=model)
+                logger.debug(f"✅ OpenAIEmbeddings initialized successfully")
+                return embeddings
+            except Exception as e:
+                logger.error(f"❌ Failed to initialize OpenAIEmbeddings: {type(e).__name__}: {e}")
+                raise
+                
         case "cohere":
             from langchain_cohere import CohereEmbeddings
-
+            
+            logger.debug(f"🚀 Initializing CohereEmbeddings with model: {model}")
             return CohereEmbeddings(model=model)  # type: ignore
+            
         case _:
             raise ValueError(f"Unsupported embedding provider: {provider}")
 
@@ -58,7 +82,7 @@ def make_elastic_retriever(
     vstore = ElasticsearchStore(
         **connection_options,  # type: ignore
         es_url=os.environ["ELASTICSEARCH_URL"],
-        index_name="langchain_index",
+        index_name="langchain_index_1536",
         embedding=embedding_model,
     )
 
@@ -109,11 +133,20 @@ def make_retriever(
     config: RunnableConfig,
 ) -> Generator[VectorStoreRetriever, None, None]:
     """Create a retriever for the agent, based on the current configuration."""
+    logger.debug(f"🔍 make_retriever called")
+    logger.debug(f"📋 Config: {config}")
+    
     configuration = IndexConfiguration.from_runnable_config(config)
+    logger.debug(f"⚙️ Configuration loaded:")
+    logger.debug(f"  - user_id: {configuration.user_id}")
+    logger.debug(f"  - embedding_model: {configuration.embedding_model}")
+    logger.debug(f"  - retriever_provider: {configuration.retriever_provider}")
+    logger.debug(f"  - search_kwargs: {configuration.search_kwargs}")
+    
     embedding_model = make_text_encoder(configuration.embedding_model)
-    user_id = configuration.user_id
-    if not user_id:
-        raise ValueError("Please provide a valid user_id in the configuration.")
+    # user_id = configuration.user_id
+    # if not user_id:
+    #     raise ValueError("Please provide a valid user_id in the configuration.")
     match configuration.retriever_provider:
         case "elastic" | "elastic-local":
             with make_elastic_retriever(configuration, embedding_model) as retriever:

@@ -8,11 +8,16 @@ Functions:
     format_docs: Convert documents to an xml-formatted string.
 """
 
+import logging
+import os
 
 from langchain.chat_models import init_chat_model
 from langchain_core.documents import Document
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AnyMessage
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 def get_message_text(msg: AnyMessage) -> str:
@@ -102,9 +107,33 @@ def load_chat_model(fully_specified_name: str) -> BaseChatModel:
     Args:
         fully_specified_name (str): String in the format 'provider/model'.
     """
+    logger.debug(f"🤖 load_chat_model called with: {fully_specified_name}")
+    
     if "/" in fully_specified_name:
         provider, model = fully_specified_name.split("/", maxsplit=1)
     else:
         provider = ""
         model = fully_specified_name
-    return init_chat_model(model, model_provider=provider)
+    
+    logger.debug(f"📦 Provider: {provider}, Model: {model}")
+    
+    # Log API keys status for common providers
+    if provider == "openai":
+        api_key = os.environ.get("OPENAI_API_KEY")
+        logger.debug(f"🔑 OPENAI_API_KEY present: {bool(api_key)}")
+        if api_key:
+            logger.debug(f"🔑 OPENAI_API_KEY length: {len(api_key)}")
+    elif provider == "anthropic":
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        logger.debug(f"🔑 ANTHROPIC_API_KEY present: {bool(api_key)}")
+        if api_key:
+            logger.debug(f"🔑 ANTHROPIC_API_KEY length: {len(api_key)}")
+    
+    logger.debug(f"🚀 Initializing chat model...")
+    try:
+        chat_model = init_chat_model(model, model_provider=provider)
+        logger.debug(f"✅ Chat model initialized successfully")
+        return chat_model
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize chat model: {type(e).__name__}: {e}")
+        raise

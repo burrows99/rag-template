@@ -27,6 +27,9 @@ For detailed configuration options and usage instructions, refer to the Configur
 and individual component documentation within the retrieval_graph package.
 """  # noqa
 
+# Import logging config first to set up logging
+from retrieval_graph import logging_config  # noqa: F401
+
 from retrieval_graph.graph import graph
 from retrieval_graph.index_graph import graph as index_graph
 

@@ -6,6 +6,7 @@ and key functions for processing user inputs, generating queries, retrieving
 relevant documents, and formulating responses.
 """
 
+import logging
 from datetime import datetime, timezone
 from typing import cast
 
@@ -20,6 +21,9 @@ from retrieval_graph import retrieval
 from retrieval_graph.configuration import Configuration
 from retrieval_graph.state import InputState, State
 from retrieval_graph.utils import format_docs, get_message_text, load_chat_model
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 # Define the function that calls the model
 
@@ -51,7 +55,9 @@ async def generate_query(
         - For subsequent messages, it uses a language model to generate a refined query.
         - The function uses the configuration to set up the prompt and model for query generation.
     """
+    logger.debug(f"📝 generate_query called")
     messages = state.messages
+    logger.debug(f"💬 Number of messages: {len(messages)}")
     if len(messages) == 1:
         # It's the first user question. We will use the input directly to search.
         human_input = get_message_text(messages[-1])
@@ -100,37 +106,61 @@ async def retrieve(
         dict[str, list[Document]]: A dictionary with a single key "retrieved_docs"
         containing a list of retrieved Document objects.
     """
-    with retrieval.make_retriever(config) as retriever:
-        response = await retriever.ainvoke(state.queries[-1], config)
-        return {"retrieved_docs": response}
+    logger.debug(f"🔎 retrieve called")
+    logger.debug(f"🔍 Latest query: {state.queries[-1]}")
+    
+    try:
+        with retrieval.make_retriever(config) as retriever:
+            logger.debug(f"✅ Retriever created successfully")
+            response = await retriever.ainvoke(state.queries[-1], config)
+            logger.debug(f"📚 Retrieved {len(response)} documents")
+            return {"retrieved_docs": response}
+    except Exception as e:
+        logger.error(f"❌ retrieve failed: {type(e).__name__}: {e}")
+        raise
 
 
 async def respond(
     state: State, *, config: RunnableConfig
 ) -> dict[str, list[BaseMessage]]:
     """Call the LLM powering our "agent"."""
-    configuration = Configuration.from_runnable_config(config)
-    # Feel free to customize the prompt, model, and other logic!
-    prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", configuration.response_system_prompt),
-            ("placeholder", "{messages}"),
-        ]
-    )
-    model = load_chat_model(configuration.response_model)
+    logger.debug(f"💭 respond called")
+    
+    try:
+        configuration = Configuration.from_runnable_config(config)
+        logger.debug(f"⚙️ Response configuration:")
+        logger.debug(f"  - response_model: {configuration.response_model}")
+        logger.debug(f"  - response_system_prompt length: {len(configuration.response_system_prompt)}")
+        
+        # Feel free to customize the prompt, model, and other logic!
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", configuration.response_system_prompt),
+                ("placeholder", "{messages}"),
+            ]
+        )
+        model = load_chat_model(configuration.response_model)
 
-    retrieved_docs = format_docs(state.retrieved_docs)
-    message_value = await prompt.ainvoke(
-        {
-            "messages": state.messages,
-            "retrieved_docs": retrieved_docs,
-            "system_time": datetime.now(tz=timezone.utc).isoformat(),
-        },
-        config,
-    )
-    response = await model.ainvoke(message_value, config)
-    # We return a list, because this will get added to the existing list
-    return {"messages": [response]}
+        retrieved_docs = format_docs(state.retrieved_docs)
+        logger.debug(f"📄 Formatted docs length: {len(retrieved_docs)}")
+        
+        message_value = await prompt.ainvoke(
+            {
+                "messages": state.messages,
+                "retrieved_docs": retrieved_docs,
+                "system_time": datetime.now(tz=timezone.utc).isoformat(),
+            },
+            config,
+        )
+        logger.debug(f"📨 Invoking model...")
+        response = await model.ainvoke(message_value, config)
+        logger.debug(f"✅ Response generated successfully")
+        # We return a list, because this will get added to the existing list
+        return {"messages": [response]}
+    except Exception as e:
+        logger.error(f"❌ respond failed: {type(e).__name__}: {e}")
+        logger.error(f"❌ Error details:", exc_info=True)
+        raise
 
 
 # Define a new graph (It's just a pipe)

@@ -5,5 +5,5 @@
     "indexer": "./src/retrieval_graph/index_graph.py:graph",
     "retrieval_graph": "./src/retrieval_graph/graph.py:graph"
   },
-  "env": ".env"
+  "env": "../.env.retrieval-agent"
 }
