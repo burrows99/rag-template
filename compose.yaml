@@ -25,5 +25,21 @@ services:
       - OLLAMA_API_BASE_URL=http://ollama:11434/api
     restart: unless-stopped
 
+  retrieval-agent:
+    build:
+      context: ./retrieval-agent-template
+      dockerfile: Dockerfile
+    container_name: retrieval-agent
+    ports:
+      - "8123:8000"
+    volumes:
+      - ./retrieval-agent-template:/app
+      - retrieval-agent-venv:/usr/local/lib/python3.11/site-packages
+    working_dir: /app
+    env_file:
+      - ./retrieval-agent-template/.env
+    restart: unless-stopped
+
 volumes:
   ollama_data:
+  retrieval-agent-venv:

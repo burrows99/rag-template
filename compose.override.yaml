@@ -1,4 +1,15 @@
 services:
+  ollama:
+    environment:
+      - LLM_PROVIDER=${LLM_PROVIDER}
+      - LLM_MODEL=${LLM_MODEL}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL}
+
+  retrieval-agent:
+    environment:
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
+      - OLLAMA_MODEL=${LLM_MODEL}
+
   # frontend:
   #   env_file:
   #     - .env
