@@ -4,7 +4,3 @@ services:
       - LLM_PROVIDER=${LLM_PROVIDER}
       - LLM_MODEL=${LLM_MODEL}
       - EMBEDDING_MODEL=${EMBEDDING_MODEL}
-
-  # frontend:
-  #   env_file:
-  #     - .env
