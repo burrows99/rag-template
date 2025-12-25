@@ -57,6 +57,8 @@ services:
     container_name: cognee
     ports:
       - "8000:8000"
+    volumes:
+      - ./cognee/data:/root/.cognee
     env_file:
       - .env.cognee
     networks:
