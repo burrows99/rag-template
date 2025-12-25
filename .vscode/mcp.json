@@ -1,0 +1,13 @@
+{
+    "servers": {
+      "github-mcp": {
+        "type": "http",
+        "url": "https://api.githubcopilot.com/mcp"
+      },
+      "cognee-mcp": {
+        "type": "http",
+        "url": "http://localhost:8001/sse"
+      }
+    }
+  }
+  
