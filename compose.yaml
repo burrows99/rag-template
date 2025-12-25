@@ -4,22 +4,35 @@ networks:
     driver: bridge
 
 services:
+  # Elasticsearch: Vector database and search engine for retrieval agent
+  # Source: https://github.com/langchain-ai/retrieval-agent-template
+  # Official docs: https://www.elastic.co/guide/en/elasticsearch/reference/current/run-elasticsearch-locally.html
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.15.1
     container_name: elasticsearch
     ports:
+      # Bind to localhost only for security - prevents external access
       - "127.0.0.1:9200:9200"
     environment:
+      # Default password for development (NEVER use in production)
       - ELASTIC_PASSWORD=changeme
+      # Single-node mode: Suitable for local development, not for production clusters
       - discovery.type=single-node
+      # Disable SSL: Simplifies local development (MUST enable for production)
       - xpack.security.http.ssl.enabled=false
+      # Trial license: Enables all features for testing (14-day trial)
       - xpack.license.self_generated.type=trial
+      # JVM heap size: 512MB min/max - balances performance with memory usage
+      # Recommendation: Set to 50% of available RAM, max 32GB in production
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     volumes:
+      # Persist index data between container restarts
       - elasticsearch-data:/usr/share/elasticsearch/data
     networks:
       - elastic-net
     restart: unless-stopped
+    # Memory limit: Prevents Elasticsearch from consuming excessive RAM
+    # Must be higher than JVM heap (512MB * 2 = 1GB minimum)
     mem_limit: 1g
 
   ollama:
@@ -52,12 +65,15 @@ services:
       - elastic-net
     restart: unless-stopped
 
+  # Cognee: AI knowledge graph system for semantic memory and retrieval
+  # Official docs: https://github.com/topoteretes/cognee
   cognee:
     image: cognee/cognee:main
     container_name: cognee
     ports:
       - "8000:8000"
     volumes:
+      # Persist all Cognee data (SQLite, LanceDB, Kuzu graph DB) to host
       - ./cognee/data:/root/.cognee
     env_file:
       - .env.cognee
@@ -65,13 +81,17 @@ services:
       - elastic-net
     restart: unless-stopped
 
+  # Cognee MCP Server: Model Context Protocol interface for VS Code integration
+  # Enables Cognee tools via MCP: cognify, search, prune, etc.
   cognee-mcp:
     image: cognee/cognee-mcp:main
     container_name: cognee-mcp
     ports:
       - "8001:8000"
     environment:
+      # SSE transport: Server-Sent Events for real-time MCP communication
       - TRANSPORT_MODE=sse
+      # Internal Docker network URL (not localhost from container perspective)
       - API_URL=http://cognee:8000
     networks:
       - elastic-net
