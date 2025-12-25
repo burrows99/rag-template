@@ -14,9 +14,13 @@ services:
       - discovery.type=single-node
       - xpack.security.http.ssl.enabled=false
       - xpack.license.self_generated.type=trial
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
     networks:
       - elastic-net
     restart: unless-stopped
+    mem_limit: 1g
 
   ollama:
     image: ollama/ollama:latest
@@ -48,25 +52,17 @@ services:
       - elastic-net
     restart: unless-stopped
 
-  retrieval-agent:
-    build:
-      context: ./retrieval-agent-template
-      dockerfile: Dockerfile
-    container_name: retrieval-agent
+  cognee:
+    image: cognee/cognee:main
+    container_name: cognee
     ports:
       - "8000:8000"
-    volumes:
-      - ./retrieval-agent-template:/app
-      - retrieval-agent-venv:/usr/local/lib/python3.11/site-packages
-    working_dir: /app
     env_file:
-      - ./retrieval-agent-template/.env
-    depends_on:
-      - elasticsearch
+      - .env
     networks:
       - elastic-net
     restart: unless-stopped
 
 volumes:
+  elasticsearch-data:
   ollama_data:
-  retrieval-agent-venv:
