@@ -63,6 +63,20 @@ services:
       - elastic-net
     restart: unless-stopped
 
+  cognee-mcp:
+    image: cognee/cognee-mcp:main
+    container_name: cognee-mcp
+    ports:
+      - "8001:8000"
+    environment:
+      - TRANSPORT_MODE=sse
+      - API_URL=http://cognee:8000
+    networks:
+      - elastic-net
+    depends_on:
+      - cognee
+    restart: unless-stopped
+
 volumes:
   elasticsearch-data:
   ollama_data:
