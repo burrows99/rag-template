@@ -1,7 +1,7 @@
 [project]
 name = "retrieval-graph"
 version = "0.0.1"
-description = "Starter template for making a custom retrieval graph in LangGraph."
+description = "Custom retrieval graph in LangGraph."
 authors = [
     { name = "William Fu-Hinthorn", email = "13333726+hinthornw@users.noreply.github.com" },
 ]
