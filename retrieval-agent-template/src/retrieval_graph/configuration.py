@@ -38,9 +38,9 @@ class IndexConfiguration:
         Literal["elastic", "elastic-local", "pinecone", "mongodb"],
         {"__template_metadata__": {"kind": "retriever"}},
     ] = field(
-        default="elastic",
+        default="elastic-local",
         metadata={
-            "description": "The vector store provider to use for retrieval. Options are 'elastic', 'pinecone', or 'mongodb'."
+            "description": "The vector store provider to use for retrieval. Options are 'elastic', 'elastic-local', 'pinecone', or 'mongodb'."
         },
     )
 

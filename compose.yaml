@@ -1,4 +1,23 @@
+networks:
+  elastic-net:
+    name: elastic-net
+    driver: bridge
+
 services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.1
+    container_name: elasticsearch
+    ports:
+      - "127.0.0.1:9200:9200"
+    environment:
+      - ELASTIC_PASSWORD=changeme
+      - discovery.type=single-node
+      - xpack.security.http.ssl.enabled=false
+      - xpack.license.self_generated.type=trial
+    networks:
+      - elastic-net
+    restart: unless-stopped
+
   ollama:
     image: ollama/ollama:latest
     ports:
@@ -11,6 +30,8 @@ services:
     tty: true
     restart: always
     entrypoint: ["/usr/bin/bash", "/entrypoint.sh"]
+    networks:
+      - elastic-net
     env_file:
       - .env
 
@@ -23,6 +44,8 @@ services:
       - ollama
     environment:
       - OLLAMA_API_BASE_URL=http://ollama:11434/api
+    networks:
+      - elastic-net
     restart: unless-stopped
 
   retrieval-agent:
@@ -31,13 +54,17 @@ services:
       dockerfile: Dockerfile
     container_name: retrieval-agent
     ports:
-      - "8123:8000"
+      - "8000:8000"
     volumes:
       - ./retrieval-agent-template:/app
       - retrieval-agent-venv:/usr/local/lib/python3.11/site-packages
     working_dir: /app
     env_file:
       - ./retrieval-agent-template/.env
+    depends_on:
+      - elasticsearch
+    networks:
+      - elastic-net
     restart: unless-stopped
 
 volumes:
