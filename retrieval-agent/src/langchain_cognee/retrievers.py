@@ -15,6 +15,8 @@ from langchain_core.retrievers import BaseRetriever
 import os
 import asyncio
 from pydantic import ConfigDict, model_validator
+import hashlib
+import time
 
 
 class CogneeRetriever(BaseRetriever):
@@ -179,11 +181,16 @@ class CogneeRetriever(BaseRetriever):
         client = self._lazy_init_cognee()
         
         # Prepare files for multipart/form-data upload
-        # Each text will be sent as a separate file
+        # Each text will be sent as a separate file with unique filename
         files = []
         for i, text in enumerate(texts):
+            # Create unique filename using content hash and timestamp to avoid duplicates
+            content_hash = hashlib.md5(text.encode()).hexdigest()[:8]
+            timestamp = int(time.time() * 1000)
+            unique_filename = f"document_{timestamp}_{content_hash}_{i}.txt"
+            
             # Create in-memory file-like objects
-            files.append(("data", (f"document_{i}.txt", text, "text/plain")))
+            files.append(("data", (unique_filename, text, "text/plain")))
         
         # Add dataset name as form data
         data = {"datasetName": self.dataset_name}
