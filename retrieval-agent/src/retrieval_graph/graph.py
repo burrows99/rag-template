@@ -55,7 +55,7 @@ async def generate_query(
         - For subsequent messages, it uses a language model to generate a refined query.
         - The function uses the configuration to set up the prompt and model for query generation.
     """
-    logger.debug(f"📝 generate_query called")
+    logger.debug("📝 generate_query called")
     messages = state.messages
     logger.debug(f"💬 Number of messages: {len(messages)}")
     if len(messages) == 1:
@@ -106,12 +106,12 @@ async def retrieve(
         dict[str, list[Document]]: A dictionary with a single key "retrieved_docs"
         containing a list of retrieved Document objects.
     """
-    logger.debug(f"🔎 retrieve called")
+    logger.debug("🔎 retrieve called")
     logger.debug(f"🔍 Latest query: {state.queries[-1]}")
-    
+
     try:
         with retrieval.make_retriever(config) as retriever:
-            logger.debug(f"✅ Retriever created successfully")
+            logger.debug("✅ Retriever created successfully")
             response = await retriever.ainvoke(state.queries[-1], config)
             logger.debug(f"📚 Retrieved {len(response)} documents")
             return {"retrieved_docs": response}
@@ -124,14 +124,16 @@ async def respond(
     state: State, *, config: RunnableConfig
 ) -> dict[str, list[BaseMessage]]:
     """Call the LLM powering our "agent"."""
-    logger.debug(f"💭 respond called")
-    
+    logger.debug("💭 respond called")
+
     try:
         configuration = Configuration.from_runnable_config(config)
-        logger.debug(f"⚙️ Response configuration:")
+        logger.debug("⚙️ Response configuration:")
         logger.debug(f"  - response_model: {configuration.response_model}")
-        logger.debug(f"  - response_system_prompt length: {len(configuration.response_system_prompt)}")
-        
+        logger.debug(
+            f"  - response_system_prompt length: {len(configuration.response_system_prompt)}"
+        )
+
         # Feel free to customize the prompt, model, and other logic!
         prompt = ChatPromptTemplate.from_messages(
             [
@@ -143,7 +145,7 @@ async def respond(
 
         retrieved_docs = format_docs(state.retrieved_docs)
         logger.debug(f"📄 Formatted docs length: {len(retrieved_docs)}")
-        
+
         message_value = await prompt.ainvoke(
             {
                 "messages": state.messages,
@@ -152,14 +154,14 @@ async def respond(
             },
             config,
         )
-        logger.debug(f"📨 Invoking model...")
+        logger.debug("📨 Invoking model...")
         response = await model.ainvoke(message_value, config)
-        logger.debug(f"✅ Response generated successfully")
+        logger.debug("✅ Response generated successfully")
         # We return a list, because this will get added to the existing list
         return {"messages": [response]}
     except Exception as e:
         logger.error(f"❌ respond failed: {type(e).__name__}: {e}")
-        logger.error(f"❌ Error details:", exc_info=True)
+        logger.error("❌ Error details:", exc_info=True)
         raise
 
 

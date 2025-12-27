@@ -5,22 +5,26 @@ and vector store functionalities with LangChain's Retriever interface.
 
 """
 
+import asyncio
+import hashlib
+import os
+import time
 from typing import Any, List, Optional
-import httpx
 
-from langchain_core.callbacks import CallbackManagerForRetrieverRun, AsyncCallbackManagerForRetrieverRun
+import httpx
+from langchain_core.callbacks import (
+    AsyncCallbackManagerForRetrieverRun,
+    CallbackManagerForRetrieverRun,
+)
 from langchain_core.documents import Document
 from langchain_core.retrievers import BaseRetriever
-
-import os
-import asyncio
 from pydantic import ConfigDict, model_validator
-import hashlib
-import time
 
 
 class CogneeRetriever(BaseRetriever):
-    """A LangChain retriever that integrates with cognee, allowing you to:
+    r"""A LangChain retriever that integrates with cognee.
+
+    Allows you to:
         1. Add documents to a cognee dataset (via ``add_documents``).
         2. Process (cognify) the dataset into a knowledge graph (via ``process_data``).
         3. Retrieve relevant documents (via the standard Retriever interface).
@@ -112,7 +116,7 @@ class CogneeRetriever(BaseRetriever):
 
     """
 
-    model_config = ConfigDict(extra='allow')
+    model_config = ConfigDict(extra="allow")
 
     llm_api_key: Optional[str] = None
     llm_provider: str = "openai"
@@ -128,11 +132,12 @@ class CogneeRetriever(BaseRetriever):
         if not self.llm_api_key:
             env_key = os.environ.get("LLM_API_KEY") or os.environ.get("OPENAI_API_KEY")
             if not env_key:
-                raise ValueError("No LLM API key found. Provide via `llm_api_key` or env var `LLM_API_KEY` or `OPENAI_API_KEY`.")
+                raise ValueError(
+                    "No LLM API key found. Provide via `llm_api_key` or env var `LLM_API_KEY` or `OPENAI_API_KEY`."
+                )
             self.llm_api_key = env_key
 
         return self
-
 
     def _lazy_init_cognee(self):
         """Lazy init - returns client for HTTP API calls."""
@@ -142,8 +147,8 @@ class CogneeRetriever(BaseRetriever):
         return self._http_client
 
     def prune(self) -> None:
-        """
-        Prune (remove) data from the cognee dataset.
+        """Prune (remove) data from the cognee dataset.
+
         Call this before adding documents if you want to ensure a clean state.
         Otherwise, you can skip this step to retain existing data in cognee.
         """
@@ -179,7 +184,7 @@ class CogneeRetriever(BaseRetriever):
     async def _add_documents_async(self, texts: List[str]) -> None:
         """Async helper to call cognee add via HTTP API."""
         client = self._lazy_init_cognee()
-        
+
         # Prepare files for multipart/form-data upload
         # Each text will be sent as a separate file with unique filename
         files = []
@@ -188,13 +193,13 @@ class CogneeRetriever(BaseRetriever):
             content_hash = hashlib.md5(text.encode()).hexdigest()[:8]
             timestamp = int(time.time() * 1000)
             unique_filename = f"document_{timestamp}_{content_hash}_{i}.txt"
-            
+
             # Create in-memory file-like objects
             files.append(("data", (unique_filename, text, "text/plain")))
-        
+
         # Add dataset name as form data
         data = {"datasetName": self.dataset_name}
-        
+
         # Call the Cognee API add endpoint with multipart/form-data
         response = await client.post("/api/v1/add", files=files, data=data)
         response.raise_for_status()
@@ -208,12 +213,9 @@ class CogneeRetriever(BaseRetriever):
         """Async helper to 'cognify' a dataset in cognee via HTTP API."""
         client = self._lazy_init_cognee()
         # Call the Cognee API cognify endpoint
-        payload = {
-            "datasets": [self.dataset_name]
-        }
+        payload = {"datasets": [self.dataset_name]}
         response = await client.post("/api/v1/cognify", json=payload)
         response.raise_for_status()
-
 
     def _get_relevant_documents(
         self, query: str, *, run_manager: CallbackManagerForRetrieverRun, **kwargs: Any
@@ -231,26 +233,22 @@ class CogneeRetriever(BaseRetriever):
         query: str,
         *,
         run_manager: AsyncCallbackManagerForRetrieverRun,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> List[Document]:
         k = kwargs.get("k", self.k)
         results = await self._search_cognee(query)
 
         return [Document(page_content=str(r)) for r in results][:k]
 
-
     async def _search_cognee(self, query: str) -> List[str]:
         """Async helper to call cognee search via HTTP API."""
         client = self._lazy_init_cognee()
         # Call the Cognee API search endpoint
-        payload = {
-            "query_type": "INSIGHTS",
-            "query_text": query
-        }
+        payload = {"query_type": "INSIGHTS", "query_text": query}
         response = await client.post("/api/v1/search", json=payload)
         response.raise_for_status()
         data = response.json()
-        
+
         # Extract results from response
         if isinstance(data, list):
             return [str(item) for item in data]

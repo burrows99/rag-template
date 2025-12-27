@@ -1,3 +1,5 @@
+"""Cognee integration for LangChain."""
+
 from importlib import metadata
 
 from langchain_cognee.retrievers import CogneeRetriever

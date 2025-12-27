@@ -22,7 +22,7 @@ class IndexConfiguration:
 
     user_id: str = field(
         default="default_user",
-        metadata={"description": "Unique identifier for the user."}
+        metadata={"description": "Unique identifier for the user."},
     )
 
     embedding_model: Annotated[
@@ -60,9 +60,7 @@ class IndexConfiguration:
     )
 
     @classmethod
-    def from_runnable_config(
-        cls: Type[T], config: RunnableConfig | None = None
-    ) -> T:
+    def from_runnable_config(cls: Type[T], config: RunnableConfig | None = None) -> T:
         """Create an IndexConfiguration instance from a RunnableConfig object.
 
         Args:
@@ -91,7 +89,9 @@ class Configuration(IndexConfiguration):
     )
 
     response_model: Annotated[str, {"__template_metadata__": {"kind": "llm"}}] = field(
-        default_factory=lambda: os.getenv("RESPONSE_MODEL", "anthropic/claude-3-5-sonnet-20240620"),
+        default_factory=lambda: os.getenv(
+            "RESPONSE_MODEL", "anthropic/claude-3-5-sonnet-20240620"
+        ),
         metadata={
             "description": "The language model used for generating responses. Should be in the form: provider/model-name."
         },
@@ -105,7 +105,9 @@ class Configuration(IndexConfiguration):
     )
 
     query_model: Annotated[str, {"__template_metadata__": {"kind": "llm"}}] = field(
-        default_factory=lambda: os.getenv("QUERY_MODEL", "anthropic/claude-3-haiku-20240307"),
+        default_factory=lambda: os.getenv(
+            "QUERY_MODEL", "anthropic/claude-3-haiku-20240307"
+        ),
         metadata={
             "description": "The language model used for processing and refining queries. Should be in the form: provider/model-name."
         },

@@ -108,15 +108,15 @@ def load_chat_model(fully_specified_name: str) -> BaseChatModel:
         fully_specified_name (str): String in the format 'provider/model'.
     """
     logger.debug(f"🤖 load_chat_model called with: {fully_specified_name}")
-    
+
     if "/" in fully_specified_name:
         provider, model = fully_specified_name.split("/", maxsplit=1)
     else:
         provider = ""
         model = fully_specified_name
-    
+
     logger.debug(f"📦 Provider: {provider}, Model: {model}")
-    
+
     # Log API keys status for common providers
     if provider == "openai":
         api_key = os.environ.get("OPENAI_API_KEY")
@@ -128,11 +128,11 @@ def load_chat_model(fully_specified_name: str) -> BaseChatModel:
         logger.debug(f"🔑 ANTHROPIC_API_KEY present: {bool(api_key)}")
         if api_key:
             logger.debug(f"🔑 ANTHROPIC_API_KEY length: {len(api_key)}")
-    
-    logger.debug(f"🚀 Initializing chat model...")
+
+    logger.debug("🚀 Initializing chat model...")
     try:
         chat_model = init_chat_model(model, model_provider=provider)
-        logger.debug(f"✅ Chat model initialized successfully")
+        logger.debug("✅ Chat model initialized successfully")
         return chat_model
     except Exception as e:
         logger.error(f"❌ Failed to initialize chat model: {type(e).__name__}: {e}")

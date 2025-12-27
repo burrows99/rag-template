@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 import pytest
@@ -13,4 +12,3 @@ if env_path.exists():
 @pytest.fixture(scope="session")
 def anyio_backend():
     return "asyncio"
-

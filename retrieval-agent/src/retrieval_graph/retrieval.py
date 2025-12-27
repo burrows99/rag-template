@@ -28,33 +28,35 @@ def make_text_encoder(model: str) -> Embeddings:
     logger.debug(f"🔧 make_text_encoder called with model: {model}")
     provider, model = model.split("/", maxsplit=1)
     logger.debug(f"📦 Provider: {provider}, Model: {model}")
-    
+
     match provider:
         case "openai":
             from langchain_openai import OpenAIEmbeddings
-            
+
             # Check for API key
             api_key = os.environ.get("OPENAI_API_KEY")
             logger.debug(f"🔑 OPENAI_API_KEY present: {bool(api_key)}")
             if api_key:
                 logger.debug(f"🔑 OPENAI_API_KEY length: {len(api_key)}")
                 logger.debug(f"🔑 OPENAI_API_KEY prefix: {api_key[:10]}...")
-            
+
             logger.debug(f"🚀 Initializing OpenAIEmbeddings with model: {model}")
             try:
                 embeddings = OpenAIEmbeddings(model=model)
-                logger.debug(f"✅ OpenAIEmbeddings initialized successfully")
+                logger.debug("✅ OpenAIEmbeddings initialized successfully")
                 return embeddings
             except Exception as e:
-                logger.error(f"❌ Failed to initialize OpenAIEmbeddings: {type(e).__name__}: {e}")
+                logger.error(
+                    f"❌ Failed to initialize OpenAIEmbeddings: {type(e).__name__}: {e}"
+                )
                 raise
-                
+
         case "cohere":
             from langchain_cohere import CohereEmbeddings
-            
+
             logger.debug(f"🚀 Initializing CohereEmbeddings with model: {model}")
             return CohereEmbeddings(model=model)  # type: ignore
-            
+
         case _:
             raise ValueError(f"Unsupported embedding provider: {provider}")
 
@@ -138,27 +140,31 @@ def make_cognee_retriever(
     # Get OpenAI API key from environment
     openai_api_key = os.environ.get("OPENAI_API_KEY")
     if not openai_api_key:
-        raise ValueError("OPENAI_API_KEY environment variable is required for Cognee retriever")
+        raise ValueError(
+            "OPENAI_API_KEY environment variable is required for Cognee retriever"
+        )
 
     # Get API URL from environment
     api_url = os.environ.get("COGNEE_API_URL", "http://localhost:8000")
 
     # Get k value from search_kwargs or use default
     k = configuration.search_kwargs.get("k", 3)
-    
+
     # Get dataset_name from configuration
     dataset_name = getattr(configuration, "dataset_name", "main_dataset")
-    
-    logger.debug(f"🧠 Initializing Cognee retriever with dataset: {dataset_name}, k={k}, api_url={api_url}")
-    
+
+    logger.debug(
+        f"🧠 Initializing Cognee retriever with dataset: {dataset_name}, k={k}, api_url={api_url}"
+    )
+
     retriever = CogneeRetriever(
         llm_api_key=openai_api_key,
         dataset_name=dataset_name,
         k=k,
         api_url=api_url,
     )
-    
-    logger.debug(f"✅ Cognee retriever initialized successfully")
+
+    logger.debug("✅ Cognee retriever initialized successfully")
     yield retriever
 
 
@@ -167,16 +173,16 @@ def make_retriever(
     config: RunnableConfig,
 ) -> Generator[VectorStoreRetriever, None, None]:
     """Create a retriever for the agent, based on the current configuration."""
-    logger.debug(f"🔍 make_retriever called")
+    logger.debug("🔍 make_retriever called")
     logger.debug(f"📋 Config: {config}")
-    
+
     configuration = IndexConfiguration.from_runnable_config(config)
-    logger.debug(f"⚙️ Configuration loaded:")
+    logger.debug("⚙️ Configuration loaded:")
     logger.debug(f"  - user_id: {configuration.user_id}")
     logger.debug(f"  - embedding_model: {configuration.embedding_model}")
     logger.debug(f"  - retriever_provider: {configuration.retriever_provider}")
     logger.debug(f"  - search_kwargs: {configuration.search_kwargs}")
-    
+
     embedding_model = make_text_encoder(configuration.embedding_model)
     # user_id = configuration.user_id
     # if not user_id:
