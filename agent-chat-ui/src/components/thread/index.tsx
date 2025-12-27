@@ -22,6 +22,7 @@ import {
   SquarePen,
   XIcon,
   Plus,
+  Database,
 } from "lucide-react";
 import { useQueryState, parseAsBoolean } from "nuqs";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
@@ -45,6 +46,7 @@ import {
   ArtifactTitle,
   useArtifactContext,
 } from "./artifact";
+import { IndexerPanel } from "./indexer-panel";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -124,6 +126,7 @@ export function Thread() {
     "hideToolCalls",
     parseAsBoolean.withDefault(false),
   );
+  const [indexerOpen, setIndexerOpen] = useState(false);
   const [input, setInput] = useState("");
   const {
     contentBlocks,
@@ -138,6 +141,7 @@ export function Thread() {
   const [firstTokenReceived, setFirstTokenReceived] = useState(false);
   const isLargeScreen = useMediaQuery("(min-width: 1024px)");
 
+  const [apiUrl] = useQueryState("apiUrl");
   const stream = useStreamContext();
   const messages = stream.messages;
   const isLoading = stream.isLoading;
@@ -516,6 +520,16 @@ export function Thread() {
                           accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
                           className="hidden"
                         />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIndexerOpen(true)}
+                          className="flex items-center gap-2"
+                        >
+                          <Database className="h-4 w-4" />
+                          <span className="text-sm">Index</span>
+                        </Button>
                         {stream.isLoading ? (
                           <Button
                             key="stop"
@@ -560,6 +574,13 @@ export function Thread() {
           </div>
         </div>
       </div>
+      <IndexerPanel
+        open={indexerOpen}
+        onOpenChange={setIndexerOpen}
+        apiUrl={apiUrl}
+        userId={(stream as any).config?.configurable?.user_id || "default_user"}
+        retrieverProvider={(stream as any).config?.configurable?.retriever_provider || "cognee"}
+      />
     </div>
   );
 }

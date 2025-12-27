@@ -1,5 +1,3 @@
-ollama/data
-
 # Python
 __pycache__/
 *.py[cod]
@@ -45,3 +43,5 @@ Thumbs.db
 
 # Data directories
 cognee/data
+ollama/data
+
