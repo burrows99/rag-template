@@ -99,6 +99,79 @@ services:
       - cognee
     restart: unless-stopped
 
+  # Azure SQL Server: Microsoft SQL database for document loading via SQLDatabaseLoader
+  # Source: LangChain SQLDatabaseLoader for structured data ingestion
+  # Official docs: https://learn.microsoft.com/sql/linux/quickstart-install-connect-docker
+  azure-sql-server:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: azure-sql-server
+    ports:
+      # Bind to localhost only for security - prevents external access
+      - "127.0.0.1:1433:1433"
+    environment:
+      # Accept EULA: Required to use SQL Server (read EULA before production use)
+      - ACCEPT_EULA=Y
+      # SA password: Loaded from environment variable for security
+      # Requirements: 8+ chars, uppercase, lowercase, digits, special chars
+      - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd}
+      # Product ID: Developer edition (free, full-featured for non-production)
+      # Options: Developer, Express (free), Standard, Enterprise (licensed)
+      - MSSQL_PID=Developer
+    volumes:
+      # Persist database files (.mdf, .ndf) between container restarts
+      - ./azure-sql-server/data:/var/opt/mssql/data
+      # Persist transaction logs (.ldf) for point-in-time recovery
+      - ./azure-sql-server/log:/var/opt/mssql/log
+      # Persist certificates and encryption keys
+      - ./azure-sql-server/secrets:/var/opt/mssql/secrets
+      # Mount initialization script to run on startup
+      - ./azure-sql-server/init-aixolotl-knowledge.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./azure-sql-server/entrypoint.sh:/entrypoint.sh:ro
+    entrypoint: ["/bin/bash", "/entrypoint.sh"]
+    healthcheck:
+      test: ["/opt/mssql-tools18/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd}", "-C", "-Q", "SELECT 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - elastic-net
+    restart: unless-stopped
+
+  # MinIO: S3-compatible object storage for document files (PDFs, DOCX, TXT, etc.)
+  # Source: LangChain S3DirectoryLoader with MinIO endpoint for file ingestion
+  # Official docs: https://min.io/docs/minio/container/index.html
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    ports:
+      # Bind to localhost only for security - prevents external access
+      # Port 9000: S3 API endpoint (boto3, AWS CLI compatible)
+      - "127.0.0.1:9000:9000"
+      # Port 9001: Web Console UI for bucket management
+      - "127.0.0.1:9001:9001"
+    environment:
+      # Root credentials: Loaded from environment variables for security
+      # Use strong passwords and consider IAM policies for production
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      # Persist object storage data (all uploaded files) between container restarts
+      - ./minio/data:/data
+      # Mount seed data to be loaded on startup
+      - ./minio/seed-data:/seed-data:ro
+      - ./minio/entrypoint.sh:/entrypoint.sh:ro
+    # Command: Custom entrypoint that initializes data then starts MinIO
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - elastic-net
+    restart: unless-stopped
+
 volumes:
   elasticsearch-data:
   ollama_data:
