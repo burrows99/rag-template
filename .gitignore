@@ -44,4 +44,8 @@ Thumbs.db
 # Data directories
 cognee/data
 ollama/data
+azure-sql-server/data
+azure-sql-server/log
+azure-sql-server/secrets
+minio/data
 
