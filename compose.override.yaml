@@ -1,6 +1,0 @@
-# services:
-#   ollama:
-#     environment:
-#       - LLM_PROVIDER=${LLM_PROVIDER}
-#       - LLM_MODEL=${LLM_MODEL}
-#       - EMBEDDING_MODEL=${EMBEDDING_MODEL}

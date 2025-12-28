@@ -117,6 +117,9 @@ def load_chat_model(fully_specified_name: str) -> BaseChatModel:
 
     logger.debug(f"📦 Provider: {provider}, Model: {model}")
 
+    # Prepare configurable parameters for specific providers
+    config_kwargs = {}
+    
     # Log API keys status for common providers
     if provider == "openai":
         api_key = os.environ.get("OPENAI_API_KEY")
@@ -128,10 +131,18 @@ def load_chat_model(fully_specified_name: str) -> BaseChatModel:
         logger.debug(f"🔑 ANTHROPIC_API_KEY present: {bool(api_key)}")
         if api_key:
             logger.debug(f"🔑 ANTHROPIC_API_KEY length: {len(api_key)}")
+    elif provider == "ollama":
+        base_url = os.environ.get("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
+        logger.debug(f"🦙 OLLAMA_BASE_URL: {base_url}")
+        config_kwargs["base_url"] = base_url
 
     logger.debug("🚀 Initializing chat model...")
     try:
-        chat_model = init_chat_model(model, model_provider=provider)
+        if config_kwargs:
+            logger.debug(f"🔧 Passing config kwargs: {config_kwargs}")
+            chat_model = init_chat_model(model, model_provider=provider, **config_kwargs)
+        else:
+            chat_model = init_chat_model(model, model_provider=provider)
         logger.debug("✅ Chat model initialized successfully")
         return chat_model
     except Exception as e:

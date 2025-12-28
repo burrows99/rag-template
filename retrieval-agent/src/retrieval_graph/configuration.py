@@ -29,7 +29,9 @@ class IndexConfiguration:
         str,
         {"__template_metadata__": {"kind": "embeddings"}},
     ] = field(
-        default="openai/text-embedding-3-small",
+        default_factory=lambda: os.getenv(
+            "EMBEDDING_MODEL", "openai/text-embedding-3-small"
+        ),
         metadata={
             "description": "Name of the embedding model to use. Must be a valid embedding model name."
         },

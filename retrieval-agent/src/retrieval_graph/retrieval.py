@@ -57,6 +57,13 @@ def make_text_encoder(model: str) -> Embeddings:
             logger.debug(f"🚀 Initializing CohereEmbeddings with model: {model}")
             return CohereEmbeddings(model=model)  # type: ignore
 
+        case "ollama":
+            from langchain_ollama import OllamaEmbeddings
+
+            base_url = os.environ.get("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
+            logger.debug(f"🚀 Initializing OllamaEmbeddings with model: {model}, base_url: {base_url}")
+            return OllamaEmbeddings(model=model, base_url=base_url)  # type: ignore
+
         case _:
             raise ValueError(f"Unsupported embedding provider: {provider}")
 

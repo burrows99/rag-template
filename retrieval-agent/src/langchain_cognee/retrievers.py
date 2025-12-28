@@ -18,7 +18,7 @@ from langchain_core.callbacks import (
 )
 from langchain_core.documents import Document
 from langchain_core.retrievers import BaseRetriever
-from pydantic import ConfigDict, model_validator
+from pydantic import ConfigDict, Field, model_validator
 
 
 class CogneeRetriever(BaseRetriever):
@@ -123,7 +123,9 @@ class CogneeRetriever(BaseRetriever):
     llm_model: str = "gpt-4o-mini"
     dataset_name: str = "default_dataset"
     k: int = 1
-    api_url: str = "http://localhost:8000"  # Cognee API URL
+    api_url: str = Field(
+        default_factory=lambda: os.environ.get("COGNEE_API_URL", "http://localhost:8000")
+    )  # Cognee API URL
 
     @model_validator(mode="after")
     def configure_cognee(self):
@@ -244,7 +246,7 @@ class CogneeRetriever(BaseRetriever):
         """Async helper to call cognee search via HTTP API."""
         client = self._lazy_init_cognee()
         # Call the Cognee API search endpoint
-        payload = {"query_type": "INSIGHTS", "query_text": query}
+        payload = {"query": query, "search_type": "GRAPH_COMPLETION"}
         response = await client.post("/api/v1/search", json=payload)
         response.raise_for_status()
         data = response.json()
