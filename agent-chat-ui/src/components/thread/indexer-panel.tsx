@@ -15,6 +15,7 @@ import { Database } from "lucide-react";
 import { DocumentInput } from "./indexer/document-input";
 import { IndexerConfig } from "./indexer/indexer-config";
 import { IndexButton } from "./indexer/index-button";
+import { DataLoaderButtons } from "./indexer/external-services";
 
 interface IndexerPanelProps {
   open: boolean;
@@ -106,6 +107,8 @@ export function IndexerPanel({
             disabled={isIndexing || !documents.trim()}
             isLoading={isIndexing}
           />
+
+          <DataLoaderButtons disabled={isIndexing} />
         </div>
       </SheetContent>
     </Sheet>

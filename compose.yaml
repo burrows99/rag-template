@@ -193,5 +193,24 @@ services:
       - elastic-net
     restart: unless-stopped
 
+  # Adminer: Database management tool for Azure SQL Server
+  # Source: https://www.adminer.org/
+  # Official docs: https://hub.docker.com/_/adminer
+  adminer:
+    image: adminer:latest
+    container_name: adminer
+    ports:
+      # Bind to localhost only for security - prevents external access
+      # Port 8080: Web UI for database management
+      - "127.0.0.1:8080:8080"
+    environment:
+      # Default to SQL Server driver
+      - ADMINER_DEFAULT_SERVER=azure-sql-server
+    networks:
+      - elastic-net
+    restart: unless-stopped
+    depends_on:
+      - azure-sql-server
+
 volumes:
   elasticsearch-data:
