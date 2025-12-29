@@ -69,6 +69,24 @@ services:
       - cognee
     restart: unless-stopped
 
+  # Ollama Init: Ensures required Ollama models are pulled before app starts
+  # Runs once on startup, then exits - uses desktop Ollama app via host.docker.internal
+  ollama-init:
+    image: curlimages/curl:latest
+    container_name: ollama-init
+    env_file:
+      - .env.ollama
+    volumes:
+      - ./ollama/entrypoint.sh:/entrypoint.sh:ro
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    extra_hosts:
+      # Enable container to reach host machine's Ollama Desktop app
+      - "host.docker.internal:host-gateway"
+    networks:
+      - elastic-net
+    restart: "no"
+    # Init container - runs once and exits
+
   # LangGraph Server: Python-based retrieval agent with indexing and query graphs
   # Source: https://github.com/langchain-ai/langgraph
   # Docs: https://docs.langchain.com/oss/python/langgraph/overview
@@ -95,8 +113,12 @@ services:
       - elastic-net
     restart: unless-stopped
     depends_on:
-      - cognee
-      - elasticsearch
+      ollama-init:
+        condition: service_completed_successfully
+      cognee:
+        condition: service_started
+      elasticsearch:
+        condition: service_started
     # Note: LangGraph requires Python runtime with langgraph CLI
     # Install in container: pip install langgraph-cli
 
@@ -131,6 +153,7 @@ services:
   # Azure SQL Server: Microsoft SQL database for document loading via SQLDatabaseLoader
   # Source: LangChain SQLDatabaseLoader for structured data ingestion
   # Official docs: https://learn.microsoft.com/sql/linux/quickstart-install-connect-docker
+  # Automatically loads SQL scripts from azure-sql-server/ on first startup
   azure-sql-server:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: azure-sql-server
@@ -146,6 +169,8 @@ services:
       # Product ID: Developer edition (free, full-featured for non-production)
       # Options: Developer, Express (free), Standard, Enterprise (licensed)
       - MSSQL_PID=Developer
+      # Seed data configuration
+      - MSSQL_SEED_DB=${MSSQL_SEED_DB:-CompanyDB}
     volumes:
       # Persist database files (.mdf, .ndf) between container restarts
       - ./azure-sql-server/data:/var/opt/mssql/data
@@ -153,6 +178,11 @@ services:
       - ./azure-sql-server/log:/var/opt/mssql/log
       # Persist certificates and encryption keys
       - ./azure-sql-server/secrets:/var/opt/mssql/secrets
+      # Mount SQL scripts directory (will be loaded on first startup)
+      - ./azure-sql-server:/sql-scripts:ro
+      # Mount custom entrypoint script for SQL initialization
+      - ./azure-sql-server/entrypoint.sh:/usr/local/bin/entrypoint.sh:ro
+    entrypoint: ["/bin/bash", "/usr/local/bin/entrypoint.sh"]
     healthcheck:
       test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd}", "-C", "-Q", "SELECT 1"]
       interval: 10s
@@ -166,6 +196,7 @@ services:
   # MinIO: S3-compatible object storage for document files (PDFs, DOCX, TXT, etc.)
   # Source: LangChain S3DirectoryLoader with MinIO endpoint for file ingestion
   # Official docs: https://min.io/docs/minio/container/index.html
+  # Automatically loads files from minio/ on first startup
   minio:
     image: minio/minio:latest
     container_name: minio
@@ -180,10 +211,16 @@ services:
       # Use strong passwords and consider IAM policies for production
       - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
+      # Seed data configuration
+      - MINIO_SEED_BUCKET=${MINIO_SEED_BUCKET:-documents}
     volumes:
       # Persist object storage data (all uploaded files) between container restarts
       - ./minio/data:/data
-    command: ["server", "/data", "--console-address", ":9001"]
+      # Mount minio directory for file initialization (excludes data/ and entrypoint.sh)
+      - ./minio:/files:ro
+      # Mount custom entrypoint script for initialization
+      - ./minio/entrypoint.sh:/usr/local/bin/entrypoint.sh:ro
+    entrypoint: ["/bin/sh", "/usr/local/bin/entrypoint.sh"]
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
       interval: 5s
@@ -196,6 +233,19 @@ services:
   # Adminer: Database management tool for Azure SQL Server
   # Source: https://www.adminer.org/
   # Official docs: https://hub.docker.com/_/adminer
+  # Access: http://localhost:8080
+  # 
+  # IMPORTANT: Use these exact credentials:
+  #   System: MS SQL (beta) or MS SQL (sqlsrv)
+  #   Server: azure-sql-server
+  #   Username: sa
+  #   Password: YourStrong@Passw0rd
+  #   Database: CompanyDB
+  #
+  # Note: Standard Adminer may not support MS SQL. If connection fails,
+  # use Azure Data Studio, DBeaver, or sqlcmd CLI instead:
+  #   docker exec -it azure-sql-server /opt/mssql-tools18/bin/sqlcmd \
+  #     -S localhost -U sa -P 'YourStrong@Passw0rd' -C -d CompanyDB
   adminer:
     image: adminer:latest
     container_name: adminer
