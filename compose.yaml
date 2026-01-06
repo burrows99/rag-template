@@ -105,7 +105,6 @@ services:
       - PORT=2024
     env_file:
       - .env.retrieval-agent
-    command: ["langgraph", "dev", "--port", "2024", "--host", "0.0.0.0"]
     extra_hosts:
       # Enable container to reach host machine's Ollama Desktop app
       - "host.docker.internal:host-gateway"
@@ -189,43 +188,6 @@ services:
       timeout: 3s
       retries: 10
       start_period: 10s
-    networks:
-      - elastic-net
-    restart: unless-stopped
-
-  # MinIO: S3-compatible object storage for document files (PDFs, DOCX, TXT, etc.)
-  # Source: LangChain S3DirectoryLoader with MinIO endpoint for file ingestion
-  # Official docs: https://min.io/docs/minio/container/index.html
-  # Automatically loads files from minio/ on first startup
-  minio:
-    image: minio/minio:latest
-    container_name: minio
-    ports:
-      # Bind to localhost only for security - prevents external access
-      # Port 9000: S3 API endpoint (boto3, AWS CLI compatible)
-      - "127.0.0.1:9000:9000"
-      # Port 9001: Web Console UI for bucket management
-      - "127.0.0.1:9001:9001"
-    environment:
-      # Root credentials: Loaded from environment variables for security
-      # Use strong passwords and consider IAM policies for production
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
-      # Seed data configuration
-      - MINIO_SEED_BUCKET=${MINIO_SEED_BUCKET:-documents}
-    volumes:
-      # Persist object storage data (all uploaded files) between container restarts
-      - ./minio/data:/data
-      # Mount minio directory for file initialization (excludes data/ and entrypoint.sh)
-      - ./minio:/files:ro
-      # Mount custom entrypoint script for initialization
-      - ./minio/entrypoint.sh:/usr/local/bin/entrypoint.sh:ro
-    entrypoint: ["/bin/sh", "/usr/local/bin/entrypoint.sh"]
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
     networks:
       - elastic-net
     restart: unless-stopped

@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Database, HardDrive } from "lucide-react";
+import { Database } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 interface DataLoaderButtonsProps {
@@ -10,13 +10,6 @@ interface DataLoaderButtonsProps {
 
 export function DataLoaderButtons({ disabled = false }: DataLoaderButtonsProps) {
   const dataSources = [
-    {
-      name: "MinIO Console",
-      description: "Upload files to S3 storage",
-      icon: HardDrive,
-      url: "http://localhost:9001",
-      color: "text-orange-600",
-    },
     {
       name: "Adminer",
       description: "Manage Azure SQL data",
@@ -43,7 +36,7 @@ export function DataLoaderButtons({ disabled = false }: DataLoaderButtonsProps) 
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 gap-2">
         {dataSources.map((source) => {
           const Icon = source.icon;
           return (
