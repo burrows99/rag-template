@@ -131,6 +131,23 @@ def load_chat_model(fully_specified_name: str) -> BaseChatModel:
         logger.debug(f"🔑 ANTHROPIC_API_KEY present: {bool(api_key)}")
         if api_key:
             logger.debug(f"🔑 ANTHROPIC_API_KEY length: {len(api_key)}")
+    elif provider == "azure_openai":
+        # Azure OpenAI requires specific configuration parameters
+        # Reference: https://learn.microsoft.com/en-us/azure/ai-services/openai/reference
+        azure_endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT")
+        azure_api_key = os.environ.get("AZURE_OPENAI_API_KEY")
+        azure_api_version = os.environ.get("AZURE_OPENAI_API_VERSION", "2024-10-21")
+        
+        logger.debug(f"🔑 AZURE_OPENAI_API_KEY present: {bool(azure_api_key)}")
+        logger.debug(f"🌐 AZURE_OPENAI_ENDPOINT: {azure_endpoint}")
+        logger.debug(f"📅 AZURE_OPENAI_API_VERSION: {azure_api_version}")
+        
+        if azure_endpoint:
+            config_kwargs["azure_endpoint"] = azure_endpoint
+        
+        # API version is required for Azure OpenAI
+        # See: https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#rest-api-versioning
+        config_kwargs["api_version"] = azure_api_version
     elif provider == "ollama":
         base_url = os.environ.get("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
         logger.debug(f"🦙 OLLAMA_BASE_URL: {base_url}")

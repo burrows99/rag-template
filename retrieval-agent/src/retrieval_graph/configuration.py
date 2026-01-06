@@ -11,6 +11,31 @@ from langchain_core.runnables import RunnableConfig, ensure_config
 from retrieval_graph import prompts
 
 
+def _get_model_with_provider(env_var: str, default: str) -> str:
+    """Get model name with AI_PROVIDER prefix if not already specified.
+    
+    Args:
+        env_var: Environment variable name for the model
+        default: Default model name (with provider prefix)
+        
+    Returns:
+        Model name in format 'provider/model'
+    """
+    model = os.getenv(env_var, default)
+    ai_provider = os.getenv("AI_PROVIDER", "")
+    
+    # If model already has provider prefix (contains /), use as-is
+    if "/" in model:
+        return model
+    
+    # If AI_PROVIDER is set and model doesn't have prefix, add it
+    if ai_provider:
+        return f"{ai_provider}/{model}"
+    
+    # Otherwise return as-is (backward compatibility)
+    return model
+
+
 @dataclass(kw_only=True)
 class IndexConfiguration:
     """Configuration class for indexing and retrieval operations.
@@ -29,7 +54,7 @@ class IndexConfiguration:
         str,
         {"__template_metadata__": {"kind": "embeddings"}},
     ] = field(
-        default_factory=lambda: os.getenv(
+        default_factory=lambda: _get_model_with_provider(
             "EMBEDDING_MODEL", "openai/text-embedding-3-small"
         ),
         metadata={
@@ -91,7 +116,7 @@ class Configuration(IndexConfiguration):
     )
 
     response_model: Annotated[str, {"__template_metadata__": {"kind": "llm"}}] = field(
-        default_factory=lambda: os.getenv(
+        default_factory=lambda: _get_model_with_provider(
             "RESPONSE_MODEL", "anthropic/claude-3-5-sonnet-20240620"
         ),
         metadata={
@@ -107,7 +132,7 @@ class Configuration(IndexConfiguration):
     )
 
     query_model: Annotated[str, {"__template_metadata__": {"kind": "llm"}}] = field(
-        default_factory=lambda: os.getenv(
+        default_factory=lambda: _get_model_with_provider(
             "QUERY_MODEL", "anthropic/claude-3-haiku-20240307"
         ),
         metadata={
