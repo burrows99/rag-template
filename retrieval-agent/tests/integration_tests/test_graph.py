@@ -1,3 +1,4 @@
+import os
 import uuid
 
 import pytest
@@ -15,12 +16,18 @@ async def test_retrieval_graph() -> None:
     user_id = "test__" + uuid.uuid4().hex
     other_user_id = "test__" + uuid.uuid4().hex
 
+    # Read configuration from environment variables
+    ai_provider = os.environ.get("AI_PROVIDER", "openai")
+    response_model = os.environ.get("RESPONSE_MODEL", "gpt-4o")
+    query_model = os.environ.get("QUERY_MODEL", "gpt-4o-mini")
+    retriever_provider = os.environ.get("RETRIEVER_PROVIDER", "elastic-local")
+
     config = RunnableConfig(
         configurable={
             "user_id": user_id,
-            "retriever_provider": "elastic-local",
-            "response_model": "openai/gpt-4o-mini",
-            "query_model": "openai/gpt-4o-mini",
+            "retriever_provider": retriever_provider,
+            "response_model": f"{ai_provider}/{response_model}",
+            "query_model": f"{ai_provider}/{query_model}",
         }
     )
 
@@ -39,9 +46,9 @@ async def test_retrieval_graph() -> None:
         {
             "configurable": {
                 "user_id": other_user_id,
-                "retriever_provider": "elastic-local",
-                "response_model": "openai/gpt-4o-mini",
-                "query_model": "openai/gpt-4o-mini",
+                "retriever_provider": retriever_provider,
+                "response_model": f"{ai_provider}/{response_model}",
+                "query_model": f"{ai_provider}/{query_model}",
             }
         },
     )

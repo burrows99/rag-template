@@ -64,6 +64,39 @@ def make_text_encoder(model: str) -> Embeddings:
             logger.debug(f"🚀 Initializing OllamaEmbeddings with model: {model}, base_url: {base_url}")
             return OllamaEmbeddings(model=model, base_url=base_url)  # type: ignore
 
+        case "azure_openai":
+            from langchain_openai import AzureOpenAIEmbeddings
+
+            # Get Azure-specific configuration from environment
+            azure_endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT")
+            api_key = os.environ.get("AZURE_OPENAI_API_KEY")
+            api_version = os.environ.get("AZURE_OPENAI_API_VERSION", "2024-10-21")
+            
+            logger.debug(f"🔑 AZURE_OPENAI_ENDPOINT present: {bool(azure_endpoint)}")
+            logger.debug(f"🔑 AZURE_OPENAI_API_KEY present: {bool(api_key)}")
+            logger.debug(f"🔑 API Version: {api_version}")
+            
+            if not azure_endpoint or not api_key:
+                raise ValueError(
+                    "AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_API_KEY must be set for azure_openai provider"
+                )
+
+            logger.debug(f"🚀 Initializing AzureOpenAIEmbeddings with model: {model}")
+            try:
+                embeddings = AzureOpenAIEmbeddings(
+                    model=model,
+                    azure_endpoint=azure_endpoint,
+                    api_key=api_key,
+                    api_version=api_version,
+                )
+                logger.debug("✅ AzureOpenAIEmbeddings initialized successfully")
+                return embeddings
+            except Exception as e:
+                logger.error(
+                    f"❌ Failed to initialize AzureOpenAIEmbeddings: {type(e).__name__}: {e}"
+                )
+                raise
+
         case _:
             raise ValueError(f"Unsupported embedding provider: {provider}")
 
